@@ -25,15 +25,29 @@ namespace client
   struct binAnd;
   struct binOr;
 
+  struct range;
+  struct contains;
+  struct range;
+  struct addSub;
+  struct mulDiv;
+  struct logicalNot;
+  struct unaryMinus;
+
   struct var;
 
   struct expr {
     using expr_t = boost::variant<
-                      boost::recursive_wrapper<expr>
+                      boost::recursive_wrapper<unaryMinus>
+                   ,  boost::recursive_wrapper<logicalNot>
+                   ,  boost::recursive_wrapper<mulDiv>
+                   ,  boost::recursive_wrapper<addSub>
+                   ,  boost::recursive_wrapper<contains>
+                   ,  boost::recursive_wrapper<range>
                    ,  boost::recursive_wrapper<binRel>
                    ,  boost::recursive_wrapper<binEq>
                    ,  boost::recursive_wrapper<binAnd>
                    ,  boost::recursive_wrapper<binOr>
+                   ,  boost::recursive_wrapper<expr>
                       // # DATETIME #
                       // # TIME #
                       // # DATE #
@@ -85,6 +99,36 @@ namespace client
       expr rhs;
   };
 
+  struct range {
+      expr val;
+      expr min;
+      expr max;
+  };
+
+  struct contains {
+      expr              val;
+      std::vector<expr> members;
+  };
+
+  struct addSub {
+      expr lhs;
+      std::string op;
+      expr rhs;
+  };
+  struct mulDiv {
+      expr lhs;
+      std::string op;
+      expr rhs;
+  };
+
+  struct logicalNot {
+      expr expression;
+  };
+
+  struct unaryMinus {
+      expr expression;
+  };
+
   std::ostream& operator<<(std::ostream& os, const expr& e)
   {
       os << e.expression;
@@ -108,6 +152,40 @@ namespace client
   std::ostream& operator<<(std::ostream& os, const binOr& bo)
   {
       os << bo.lhs << " || " << bo.rhs;
+      return os;
+  }
+  std::ostream& operator<<(std::ostream& os, const range& r)
+  {
+      os << r.val << " between " <<  r.min << " and " << r.max;
+      return os;
+  }
+  std::ostream& operator<<(std::ostream& os, const contains& c)
+  {
+      os << c.val << " in { ";
+      for (const auto& c : c.members) {
+          os << c << " ";
+      }
+      os << "}";
+      return os;
+  }
+  std::ostream& operator<<(std::ostream& os, const addSub& as)
+  {
+      os << as.lhs << " " << as.op << " " << as.rhs;
+      return os;
+  }
+  std::ostream& operator<<(std::ostream& os, const mulDiv& md)
+  {
+      os << md.lhs << " " << md.op << " " << md.rhs;
+      return os;
+  }
+  std::ostream& operator<<(std::ostream& os, const logicalNot& ln)
+  {
+      os << "!" << ln.expression;
+      return os;
+  }
+  std::ostream& operator<<(std::ostream& os, const unaryMinus& um)
+  {
+      os << "-" << um;
       return os;
   }
   std::ostream& operator<<(std::ostream& os, const qual& q)
@@ -155,6 +233,29 @@ BOOST_FUSION_ADAPT_STRUCT(client::binOr,
                           (client::expr, lhs),
                           (client::expr, rhs))
 
+BOOST_FUSION_ADAPT_STRUCT(client::range,
+                          (client::expr, val),
+                          (client::expr, min),
+                          (client::expr, max))
+
+BOOST_FUSION_ADAPT_STRUCT(client::contains,
+                          (client::expr, val),
+                          (std::vector<client::expr>, members))
+
+BOOST_FUSION_ADAPT_STRUCT(client::addSub,
+                          (client::expr, lhs),
+                          (std::string, op),
+                          (client::expr, rhs))
+BOOST_FUSION_ADAPT_STRUCT(client::mulDiv,
+                          (client::expr, lhs),
+                          (std::string, op),
+                          (client::expr, rhs))
+
+BOOST_FUSION_ADAPT_STRUCT(client::logicalNot,
+                          (client::expr, expression))
+BOOST_FUSION_ADAPT_STRUCT(client::unaryMinus,
+                          (client::expr, expression))
+
 BOOST_FUSION_ADAPT_STRUCT(client::qual,
                           (std::string, id),
                           (client::qual_inner, inner))
@@ -190,22 +291,43 @@ namespace client
 
           assignment_rule = var_rule >> lit('=') >> expr_rule;
 
-          expr_rule = parens_rule
-                    | rel_rule
-                    // | eq_rule
-                    | and_rule
-                    | or_rule
-                    // # DATETIME #
-                    // # TIME #
-                    // # DATE #
-                    // # PERIOD #
-                    | uint_
-                    | decimal_rule
-                    | int_
-                    | char_rule
-                    | string_rule
-                    | exists_rule
-                    | var_rule;
+          expr_rule =
+              unaryMinus_rule
+            | logicalNot_rule
+            | mulDiv_rule
+            | addSub_rule
+            | contains_rule
+            | range_rule
+            | rel_rule
+            // | eq_rule
+            | and_rule
+            | or_rule
+            | parens_rule
+            // # DATETIME #
+            // # TIME #
+            // # DATE #
+            // # PERIOD #
+            | uint_
+            | decimal_rule
+            | int_
+            | char_rule
+            | string_rule
+            | exists_rule
+            | var_rule;
+
+          unaryMinus_rule = lit('-') >> expr_rule;
+          logicalNot_rule = lit('!') >> expr_rule;
+
+          mulDiv_rule = expr_rule >> (string("*") | string("/")) >> expr_rule;
+          addSub_rule = expr_rule >> (string("+") | string("-")) >> expr_rule;
+
+          contains_rule = expr_rule >> lit("in")
+                         >> lit("{")
+                         >> expr_rule % lit(',')
+                         >> lit("}");
+          range_rule = expr_rule >> lit("between") >>
+                       expr_rule >> lit("and") >> expr_rule;
+
           rel_rule    = expr_rule >>
                             ( string("<")
                             | string("<=")
@@ -245,6 +367,15 @@ namespace client
         qi::rule<Iterator, score_expression(), ascii::space_type> score_expression_rule;
         qi::rule<Iterator, assignment()> assignment_rule;
         qi::rule<Iterator, expr()> expr_rule;
+
+        qi::rule<Iterator, unaryMinus()> unaryMinus_rule;
+        qi::rule<Iterator, logicalNot()> logicalNot_rule;
+
+        qi::rule<Iterator, mulDiv()> mulDiv_rule;
+        qi::rule<Iterator, addSub()> addSub_rule;
+
+        qi::rule<Iterator, contains()> contains_rule;
+        qi::rule<Iterator, range()> range_rule;
 
         qi::rule<Iterator, binRel()> rel_rule;
         qi::rule<Iterator, binEq()> eq_rule;
