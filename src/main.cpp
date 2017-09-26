@@ -7,13 +7,10 @@
 #include <string>
 #include <type_traits>
 
-int main(int argc, char *argv[])
-{
-  const std::string tests[] = {
-    "42"
-  };
+int main(int argc, char *argv[]) {
+  const std::string tests[] = {"42"};
 
-  for (const auto& t : tests) {
+  for (const auto &t : tests) {
     std::cout << "attempting parse for: " << t << std::endl;
 
     score::ast::Statement ast;
@@ -21,8 +18,7 @@ int main(int argc, char *argv[])
 
     if (parsed) {
       std::cout << "\tOK" << std::endl;
-    }
-    else {
+    } else {
       std::cout << "\tERROR" << std::endl;
     }
   }
