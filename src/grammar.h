@@ -1,10 +1,8 @@
-#include <string>
+#pragma once
 
-namespace score {
-namespace ast {
-struct Statement {};
-}
-}
+#include <ast.h>
+
+#include <string>
 
 namespace score {
 bool parse(ast::Statement &out, const std::string &in);
