@@ -9,7 +9,7 @@
 #include <type_traits>
 
 int main(int argc, char *argv[]) {
-  const std::string tests[] = {"42"};
+  const std::string tests[] = {"42", "-12", "3*4", "!(4/2)", "4*", "/2"};
 
   for (const auto &t : tests) {
     std::cout << "attempting parse for: " << t << std::endl;
