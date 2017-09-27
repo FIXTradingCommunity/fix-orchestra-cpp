@@ -20,17 +20,58 @@
 namespace score {
 namespace ast {
 
+struct Date {
+  Date() = default;
+  Date(unsigned short y, unsigned char m, unsigned char d)
+      : year(y), month(m), day(d) {}
+  unsigned short year;
+  unsigned char month;
+  unsigned char day;
+};
+
+struct Time {
+  // TODO: support time-zones!
+  Time() = default;
+  Time(unsigned char h, unsigned char m, unsigned char s, unsigned long ss)
+      : hour(h), minute(m), second(s), subsecond(ss) {}
+  unsigned char hour;
+  unsigned char minute;
+  unsigned char second;
+  unsigned long subsecond;
+
+  static Time makeTime(unsigned char h, unsigned char m,
+                       const boost::optional<unsigned char> &os,
+                       const boost::optional<unsigned long> &oss) {
+    return Time(h, m, boost::get_optional_value_or(os, 0),
+                boost::get_optional_value_or(oss, 0));
+  }
+};
+
+struct Datetime {
+  Datetime() = default;
+  Datetime(const Date &d, const Time &t) : date(d), time(t) {}
+  Date date;
+  Time time;
+};
+
+// TODO
+// struct Period {
+// };
+}
+}
+
+namespace score {
+namespace ast {
+
 struct OpUnaryMinus {};
 struct OpLogicalNot {};
 template <typename OpT> struct UnaryOp;
-
 struct OpSub {};
 struct OpAdd {};
 struct OpMod {};
 struct OpDiv {};
 struct OpMult {};
 template <typename OpT> struct BinaryOp;
-
 struct RelGreaterThanEq {};
 struct RelGreaterThan {};
 struct RelLessThanEq {};
@@ -40,40 +81,38 @@ struct RelEq {};
 struct RelAnd {};
 struct RelOr {};
 template <typename OpT> struct BinaryRel;
-
 struct Range;
-
 struct Contains;
 
 struct Predicate;
 struct Qualifier;
 struct Variable;
-
 struct Exists;
 
-using Expr =
-    boost::variant<std::string, char, unsigned int,
-                   double, // TODO: not exact/arb precision - will improve later
-                   boost::recursive_wrapper<Variable>,
-                   boost::recursive_wrapper<Exists>,
+using Expr = boost::variant<
+    char,
+    unsigned int, // list these first since first field needs to be default
+                  // constructible
+    double,       // TODO: not exact/arb precision - will improve later
+    std::string, Date, Time, Datetime, // Period,
+    boost::recursive_wrapper<Variable>, boost::recursive_wrapper<Exists>,
 
-                   boost::recursive_wrapper<UnaryOp<OpUnaryMinus>>,
-                   boost::recursive_wrapper<UnaryOp<OpLogicalNot>>,
-                   boost::recursive_wrapper<BinaryOp<OpMod>>,
-                   boost::recursive_wrapper<BinaryOp<OpDiv>>,
-                   boost::recursive_wrapper<BinaryOp<OpMult>>,
-                   boost::recursive_wrapper<BinaryOp<OpSub>>,
-                   boost::recursive_wrapper<BinaryOp<OpAdd>>,
-                   boost::recursive_wrapper<BinaryRel<RelNotEq>>,
-                   boost::recursive_wrapper<BinaryRel<RelLessThan>>,
-                   boost::recursive_wrapper<BinaryRel<RelLessThanEq>>,
-                   boost::recursive_wrapper<BinaryRel<RelGreaterThan>>,
-                   boost::recursive_wrapper<BinaryRel<RelGreaterThanEq>>,
-                   boost::recursive_wrapper<Range>,
-                   boost::recursive_wrapper<Contains>,
-                   boost::recursive_wrapper<BinaryRel<RelEq>>,
-                   boost::recursive_wrapper<BinaryRel<RelAnd>>,
-                   boost::recursive_wrapper<BinaryRel<RelOr>>>;
+    boost::recursive_wrapper<UnaryOp<OpUnaryMinus>>,
+    boost::recursive_wrapper<UnaryOp<OpLogicalNot>>,
+    boost::recursive_wrapper<BinaryOp<OpMod>>,
+    boost::recursive_wrapper<BinaryOp<OpDiv>>,
+    boost::recursive_wrapper<BinaryOp<OpMult>>,
+    boost::recursive_wrapper<BinaryOp<OpSub>>,
+    boost::recursive_wrapper<BinaryOp<OpAdd>>,
+    boost::recursive_wrapper<BinaryRel<RelNotEq>>,
+    boost::recursive_wrapper<BinaryRel<RelLessThan>>,
+    boost::recursive_wrapper<BinaryRel<RelLessThanEq>>,
+    boost::recursive_wrapper<BinaryRel<RelGreaterThan>>,
+    boost::recursive_wrapper<BinaryRel<RelGreaterThanEq>>,
+    boost::recursive_wrapper<Range>, boost::recursive_wrapper<Contains>,
+    boost::recursive_wrapper<BinaryRel<RelEq>>,
+    boost::recursive_wrapper<BinaryRel<RelAnd>>,
+    boost::recursive_wrapper<BinaryRel<RelOr>>>;
 
 using Statement = boost::variant<Expr>;
 }
@@ -137,10 +176,9 @@ struct Variable {
 };
 
 struct Exists {
-  explicit Exists(const Qualifier& q) : qualifier(q) {}
+  explicit Exists(const Qualifier &q) : qualifier(q) {}
   Qualifier qualifier;
 };
-
 }
 }
 
@@ -194,3 +232,12 @@ BOOST_FUSION_ADAPT_STRUCT(score::ast::Variable,
                            scope)(std::vector<score::ast::Qualifier>, quals))
 BOOST_FUSION_ADAPT_STRUCT(score::ast::Exists,
                           (score::ast::Qualifier, qualifier))
+
+BOOST_FUSION_ADAPT_STRUCT(score::ast::Date,
+                          (unsigned short, year)(unsigned char,
+                                                 month)(unsigned char, day))
+BOOST_FUSION_ADAPT_STRUCT(score::ast::Time,
+                          (unsigned char, hour)(unsigned char, minute)(
+                              unsigned char, second)(unsigned long, subsecond))
+BOOST_FUSION_ADAPT_STRUCT(score::ast::Datetime,
+                          (score::ast::Date, date)(score::ast::Time, time))

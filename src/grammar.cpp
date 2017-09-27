@@ -53,7 +53,10 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
       | (lit('!') >> exprRule) [_val = phx::construct<ast::UnaryOp<ast::OpLogicalNot>>(_1)]
       | simpleRule            [_val = _1];
     simpleRule
-      %= (lit('(') >> exprRule >> lit(')'))
+      %= lit('(') >> exprRule >> lit(')')
+      |  lit('#') >> datetimeRule >> lit('#')
+      |  lit('#') >> timeRule >> lit('#')
+      |  lit('#') >> dateRule >> lit('#')
       |  double_ // TODO: allow negative numbers? replace with a parser for fixed-precision
       |  uint_   // had to switch order with double_ (c.f. ANTLR grammar)
       |  lit('\'') >> stringCharRule >> lit('\'')
@@ -67,6 +70,15 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
     qualRule %= idRule >> -(lit('[') >> (uint_  | predRule) >> lit(']'));
     varRule   = (-(string("$")|string("^")|string("in.")|string("out.")|string("this."))
                   >> ((qualRule % '.'))) [_val = phx::construct<ast::Variable>(_1, _2)];
+
+    datetimeRule %= dateRule >> timeRule;
+    dateRule     %= uint_parser<unsigned short, 10, 4, 4>()
+                    >> lit('-') >> uint_parser<unsigned char, 10, 2, 2>()
+                    >> lit('-') >> uint_parser<unsigned char, 10, 2, 2>();
+    timeRule      = (lit('T') >> uint_parser<unsigned short, 10, 2, 2>()
+                      >> lit(':') >> uint_parser<unsigned char, 10, 2, 2>()
+                      >> -(lit(':') >> uint_parser<unsigned char, 10, 2, 2>())
+                      >> -(lit('.') >> ulong_)) [_val = phx::bind(&score::ast::Time::makeTime, _1, _2, _3, _4)];
 
     idRule = alpha >> *(alnum | char_('_'));
 
@@ -87,6 +99,10 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
     BOOST_SPIRIT_DEBUG_NODE(simpleRule);
     BOOST_SPIRIT_DEBUG_NODE(existsRule);
     BOOST_SPIRIT_DEBUG_NODE(varRule);
+
+    BOOST_SPIRIT_DEBUG_NODE(datetimeRule);
+    BOOST_SPIRIT_DEBUG_NODE(timeRule);
+    BOOST_SPIRIT_DEBUG_NODE(dateRule);
 
     BOOST_SPIRIT_DEBUG_NODE(predRule);
     BOOST_SPIRIT_DEBUG_NODE(qualRule);
@@ -109,6 +125,10 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
                                                           simpleRule,
                                                           existsRule,
                                                           varRule;
+
+  qi::rule<Iterator, ast::Date(),      ascii::space_type> dateRule;
+  qi::rule<Iterator, ast::Time(),      ascii::space_type> timeRule;
+  qi::rule<Iterator, ast::Datetime(),  ascii::space_type> datetimeRule;
 
   qi::rule<Iterator, ast::Predicate(), ascii::space_type> predRule;
   qi::rule<Iterator, ast::Qualifier(), ascii::space_type> qualRule;

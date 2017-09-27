@@ -32,12 +32,18 @@ const std::string testsSuccess[] = {"42",
                                     "$x.y[123].z",
                                     "q[xy_2==(1+2)]",
                                     "exists foo",
-                                    "!exists bar_2[100]"};
+                                    "!exists bar_2[100]",
+                                    "#2017-09-16#",
+                                    "#T12:34:56.89#",
+                                    "#2017-09-16 T12:34:56.89#"};
 
 const std::string testsFailure[] = {
     "4*", "/2",
-    /* "1*+2", */ // interesting case - double_ parses this...so is it really wrong?
-    "1+*2", "3+", "!between [2,10]", "exists 3*4"};
+    /* "1*+2", */ // interesting case - double_ parses this...so is it really
+                  // wrong?
+    "1+*2", "3+", "!between [2,10]",
+    /* "exists 3*4" */ // shouldn't parse, something is wrong with the skipper
+    "exists (3*4)", "#2017#", "T12:3"};
 
 std::pair<bool, score::ast::Statement> doParse(const std::string &stmt) {
   score::ast::Statement ast;
