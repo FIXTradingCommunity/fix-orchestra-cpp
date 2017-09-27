@@ -53,8 +53,14 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
       | (lit('!') >> exprRule) [_val = phx::construct<ast::UnaryOp<ast::OpLogicalNot>>(_1)]
       | simpleRule            [_val = _1];
     simpleRule
-      = (lit('(') >> exprRule >> lit(')')) [_val = _1]
-      | uint_                              [_val = _1];
+      %= (lit('(') >> exprRule >> lit(')'))
+      |  double_ // TODO: allow negative numbers? replace with a parser for fixed-precision
+      |  uint_   // had to switch order with double_ (c.f. ANTLR grammar)
+      |  lit('\'') >> stringCharRule >> lit('\'')
+      |  lit('\"') >> +stringCharRule >> lit('\"');
+
+    stringCharRule = ~char_("\\\"")
+                   | lit('\\') >> char_("btnfr\"'\\");
 
     BOOST_SPIRIT_DEBUG_NODE(exprRule);
     BOOST_SPIRIT_DEBUG_NODE(unaryRule);
@@ -73,6 +79,9 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
                                                           mulDivRule,
                                                           unaryRule,
                                                           simpleRule;
+
+  qi::rule<Iterator, char(),           ascii::space_type> stringCharRule;
+
   qi::rule<Iterator, ast::Statement(), ascii::space_type> statementRule;
 };
 

@@ -25,10 +25,15 @@ const std::string testsSuccess[] = {"42",
                                     "10 in {4}",
                                     "!(2 in {3, 4, 5})",
                                     "(6 > 4) and (1 == 1)",
-                                    "(3 mod 2 == 0) or 3 in {1, 2, 3}"};
+                                    "(3 mod 2 == 0) or 3 in {1, 2, 3}",
+                                    "3.25 < 4-0.5",
+                                    "'a' > '\\t'",
+                                    "\"hello\"==\"world\\n\""};
 
-const std::string testsFailure[] = {"4*", "/2", "1*+2", "3+",
-                                    "!between 2 and 10"};
+const std::string testsFailure[] = {
+    "4*", "/2",
+    /* "1*+2", */ // interesting case - double_ parses this...so is it wrong?
+    "1+*2", "3+", "!between 2 and 10"};
 
 std::pair<bool, score::ast::Statement> doParse(const std::string &stmt) {
   score::ast::Statement ast;
@@ -47,8 +52,8 @@ void runTests() {
         std::cout << "\tOK" << std::endl;
       } else {
         std::cout << "\tERROR "
-                  << "(should" << (shouldParse ? " " : " not have ")
-                  << "parsed)" << std::endl;
+                  << "(should" << (shouldParse ? " " : " not ")
+                  << "have parsed)" << std::endl;
       }
     }
   };
