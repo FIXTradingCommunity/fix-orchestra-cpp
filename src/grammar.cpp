@@ -18,14 +18,20 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
 
     statementRule = exprRule.alias() >> eoi;
 
-    exprRule      = eqRule.alias();
+    exprRule      = orRule.alias();
+    orRule
+      = andRule[_val = _1]
+        >> *(((lit("or") | lit("||")) >> andRule) [_val = phx::construct<ast::BinaryRel<ast::RelOr>>(_val, _1)]);
+    andRule
+      = eqRule[_val = _1]
+        >> *(((lit("and") | lit("&&")) >> eqRule) [_val = phx::construct<ast::BinaryRel<ast::RelAnd>>(_val, _1)]);
     eqRule
       = inclusionRule[_val = _1]
         >> *( ((lit("eq") | lit("==")) >> inclusionRule) [_val = phx::construct<ast::BinaryRel<ast::RelEq>>(_val, _1)]
             | ((lit("ne") | lit("!=")) >> inclusionRule) [_val = phx::construct<ast::BinaryRel<ast::RelNotEq>>(_val, _1)]);
     inclusionRule // TODO: does this take precedence over `relRule`s? we should think about this
       = relRule[_val = _1]
-        >> *( (lit("between") >> relRule >> lit("and") >> relRule) [_val = phx::construct<ast::Range>(_val, _1, _2)]
+        >> *( (lit("between") >> lit("[") >> relRule >> lit(",") >> relRule >> lit("]")) [_val = phx::construct<ast::Range>(_val, _1, _2)] // XXX: differs from ANTLR grammar!
             | (lit("in") >> lit("{") >> (relRule % ',') >> lit("}")) [_val = phx::construct<ast::Contains>(_val, _1)]);
     relRule
       = addSubRule[_val = _1]
@@ -58,6 +64,8 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
   }
 
   qi::rule<Iterator, ast::Expr(),      ascii::space_type> exprRule,
+                                                          orRule,
+                                                          andRule,
                                                           eqRule,
                                                           inclusionRule,
                                                           relRule,

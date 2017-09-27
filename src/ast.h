@@ -29,6 +29,8 @@ struct RelLessThanEq {};
 struct RelLessThan {};
 struct RelNotEq {};
 struct RelEq {};
+struct RelAnd {};
+struct RelOr {};
 template <typename OpT> struct BinaryRel;
 
 struct Range;
@@ -43,13 +45,16 @@ using Expr = boost::variant<
     boost::recursive_wrapper<BinaryOp<OpMult>>,
     boost::recursive_wrapper<BinaryOp<OpSub>>,
     boost::recursive_wrapper<BinaryOp<OpAdd>>,
-    boost::recursive_wrapper<BinaryRel<RelEq>>,
     boost::recursive_wrapper<BinaryRel<RelNotEq>>,
     boost::recursive_wrapper<BinaryRel<RelLessThan>>,
     boost::recursive_wrapper<BinaryRel<RelLessThanEq>>,
     boost::recursive_wrapper<BinaryRel<RelGreaterThan>>,
     boost::recursive_wrapper<BinaryRel<RelGreaterThanEq>>,
-    boost::recursive_wrapper<Range>, boost::recursive_wrapper<Contains>>;
+    boost::recursive_wrapper<Range>,
+    boost::recursive_wrapper<Contains>,
+    boost::recursive_wrapper<BinaryRel<RelEq>>,
+    boost::recursive_wrapper<BinaryRel<RelAnd>>,
+    boost::recursive_wrapper<BinaryRel<RelOr>>>;
 
 using Statement = boost::variant<Expr>;
 }
@@ -103,8 +108,6 @@ BOOST_FUSION_ADAPT_STRUCT(score::ast::BinaryOp<score::ast::OpAdd>,
 BOOST_FUSION_ADAPT_STRUCT(score::ast::BinaryOp<score::ast::OpSub>,
                           (score::ast::Expr, lhs)(score::ast::Expr, rhs))
 
-BOOST_FUSION_ADAPT_STRUCT(score::ast::BinaryRel<score::ast::RelEq>,
-                          (score::ast::Expr, lhs)(score::ast::Expr, rhs))
 BOOST_FUSION_ADAPT_STRUCT(score::ast::BinaryRel<score::ast::RelNotEq>,
                           (score::ast::Expr, lhs)(score::ast::Expr, rhs))
 BOOST_FUSION_ADAPT_STRUCT(score::ast::BinaryRel<score::ast::RelLessThan>,
@@ -122,3 +125,11 @@ BOOST_FUSION_ADAPT_STRUCT(score::ast::Range,
 BOOST_FUSION_ADAPT_STRUCT(score::ast::Contains,
                           (score::ast::Expr, lhs)(std::vector<score::ast::Expr>,
                                                   set))
+
+BOOST_FUSION_ADAPT_STRUCT(score::ast::BinaryRel<score::ast::RelEq>,
+                          (score::ast::Expr, lhs)(score::ast::Expr, rhs))
+
+BOOST_FUSION_ADAPT_STRUCT(score::ast::BinaryRel<score::ast::RelAnd>,
+                          (score::ast::Expr, lhs)(score::ast::Expr, rhs))
+BOOST_FUSION_ADAPT_STRUCT(score::ast::BinaryRel<score::ast::RelOr>,
+                          (score::ast::Expr, lhs)(score::ast::Expr, rhs))

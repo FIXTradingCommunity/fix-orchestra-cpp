@@ -21,9 +21,11 @@ const std::string testsSuccess[] = {"42",
                                     "5 ne 6",
                                     "3+4>22",
                                     "5*(3+2) le 1",
-                                    "(2+4) between -1 and 10",
+                                    "(2+4) between [-1, 10]",
                                     "10 in {4}",
-                                    "!(2 in {3, 4, 5})"};
+                                    "!(2 in {3, 4, 5})",
+                                    "(6 > 4) and (1 == 1)",
+                                    "(3 mod 2 == 0) or 3 in {1, 2, 3}"};
 
 const std::string testsFailure[] = {"4*", "/2", "1*+2", "3+",
                                     "!between 2 and 10"};
