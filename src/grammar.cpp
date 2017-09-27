@@ -18,7 +18,21 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
 
     statementRule = exprRule.alias() >> eoi;
 
-    exprRule      = addSubRule.alias();
+    exprRule      = eqRule.alias();
+    eqRule
+      = inclusionRule[_val = _1]
+        >> *( ((lit("eq") | lit("==")) >> inclusionRule) [_val = phx::construct<ast::BinaryRel<ast::RelEq>>(_val, _1)]
+            | ((lit("ne") | lit("!=")) >> inclusionRule) [_val = phx::construct<ast::BinaryRel<ast::RelNotEq>>(_val, _1)]);
+    inclusionRule // TODO: does this take precedence over `relRule`s? we should think about this
+      = relRule[_val = _1]
+        >> *( (lit("between") >> relRule >> lit("and") >> relRule) [_val = phx::construct<ast::Range>(_val, _1, _2)]
+            | (lit("in") >> lit("{") >> (relRule % ',') >> lit("}")) [_val = phx::construct<ast::Contains>(_val, _1)]);
+    relRule
+      = addSubRule[_val = _1]
+        >> *( ((lit("<") | lit("lt")) >> addSubRule) [_val = phx::construct<ast::BinaryRel<ast::RelLessThan>>(_val, _1)]
+            | ((lit("<=") | lit("le")) >> addSubRule) [_val = phx::construct<ast::BinaryRel<ast::RelLessThanEq>>(_val, _1)]
+            | ((lit(">") | lit("gt")) >> addSubRule) [_val = phx::construct<ast::BinaryRel<ast::RelGreaterThan>>(_val, _1)]
+            | ((lit(">=") | lit("ge")) >> addSubRule) [_val = phx::construct<ast::BinaryRel<ast::RelGreaterThanEq>>(_val, _1)]);
     addSubRule
       = mulDivRule[_val = _1]
         >> *( (lit('+') >> mulDivRule) [_val = phx::construct<ast::BinaryOp<ast::OpAdd>>(_val, _1)]
@@ -27,9 +41,9 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
       = unaryRule[_val = _1]
         >> *( (lit('*') >> unaryRule) [_val = phx::construct<ast::BinaryOp<ast::OpMult>>(_val, _1)]
             | (lit('/') >> unaryRule) [_val = phx::construct<ast::BinaryOp<ast::OpDiv>>(_val, _1)]);
-    unaryRule
-      = (lit('-') > exprRule) [_val = phx::construct<ast::UnaryOp<ast::OpUnaryMinus>>(_1)]
-      | (lit('!') > exprRule) [_val = phx::construct<ast::UnaryOp<ast::OpLogicalNot>>(_1)]
+    unaryRule // TODO: better to use '>' instead of '>>' ... but throws exception on bad parse
+      = (lit('-') >> exprRule) [_val = phx::construct<ast::UnaryOp<ast::OpUnaryMinus>>(_1)]
+      | (lit('!') >> exprRule) [_val = phx::construct<ast::UnaryOp<ast::OpLogicalNot>>(_1)]
       | simpleRule            [_val = _1];
     simpleRule
       = (lit('(') >> exprRule >> lit(')')) [_val = _1]
@@ -43,6 +57,9 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
   }
 
   qi::rule<Iterator, ast::Expr(),      ascii::space_type> exprRule,
+                                                          eqRule,
+                                                          inclusionRule,
+                                                          relRule,
                                                           addSubRule,
                                                           mulDivRule,
                                                           unaryRule,

@@ -7,6 +7,8 @@
 #include <boost/variant/recursive_wrapper.hpp>
 #include <boost/variant/variant.hpp>
 
+#include <vector>
+
 namespace score {
 namespace ast {
 
@@ -20,13 +22,32 @@ struct OpDiv {};
 struct OpMult {};
 template <typename OpT> struct BinaryOp;
 
-using Expr = boost::variant<unsigned int,
-                            boost::recursive_wrapper<UnaryOp<OpUnaryMinus>>,
-                            boost::recursive_wrapper<UnaryOp<OpLogicalNot>>,
-                            boost::recursive_wrapper<BinaryOp<OpDiv>>,
-                            boost::recursive_wrapper<BinaryOp<OpMult>>,
-                            boost::recursive_wrapper<BinaryOp<OpSub>>,
-                            boost::recursive_wrapper<BinaryOp<OpAdd>>>;
+struct RelGreaterThanEq {};
+struct RelGreaterThan {};
+struct RelLessThanEq {};
+struct RelLessThan {};
+struct RelNotEq {};
+struct RelEq {};
+template <typename OpT> struct BinaryRel;
+
+struct Range;
+
+struct Contains;
+
+using Expr = boost::variant<
+    unsigned int, boost::recursive_wrapper<UnaryOp<OpUnaryMinus>>,
+    boost::recursive_wrapper<UnaryOp<OpLogicalNot>>,
+    boost::recursive_wrapper<BinaryOp<OpDiv>>,
+    boost::recursive_wrapper<BinaryOp<OpMult>>,
+    boost::recursive_wrapper<BinaryOp<OpSub>>,
+    boost::recursive_wrapper<BinaryOp<OpAdd>>,
+    boost::recursive_wrapper<BinaryRel<RelEq>>,
+    boost::recursive_wrapper<BinaryRel<RelNotEq>>,
+    boost::recursive_wrapper<BinaryRel<RelLessThan>>,
+    boost::recursive_wrapper<BinaryRel<RelLessThanEq>>,
+    boost::recursive_wrapper<BinaryRel<RelGreaterThan>>,
+    boost::recursive_wrapper<BinaryRel<RelGreaterThanEq>>,
+    boost::recursive_wrapper<Range>, boost::recursive_wrapper<Contains>>;
 
 using Statement = boost::variant<Expr>;
 }
@@ -42,8 +63,25 @@ template <typename OpT> struct UnaryOp {
 
 template <typename OpT> struct BinaryOp {
   explicit BinaryOp(const Expr &le, const Expr &re) : lhs(le), rhs(re) {}
+  Expr lhs, rhs;
+};
+
+template <typename OpT> struct BinaryRel {
+  explicit BinaryRel(const Expr &le, const Expr &re) : lhs(le), rhs(re) {}
+  Expr lhs, rhs;
+};
+
+struct Range {
+  explicit Range(const Expr &elhs, const Expr &elb, const Expr &eub)
+      : lhs(elhs), lb(elb), ub(eub) {}
+  Expr lhs, lb, ub;
+};
+
+struct Contains {
+  explicit Contains(const Expr &elhs, const std::vector<Expr> &eset)
+      : lhs(elhs), set(eset) {}
   Expr lhs;
-  Expr rhs;
+  std::vector<Expr> set;
 };
 }
 }
@@ -60,3 +98,23 @@ BOOST_FUSION_ADAPT_STRUCT(score::ast::BinaryOp<score::ast::OpAdd>,
                           (score::ast::Expr, lhs)(score::ast::Expr, rhs))
 BOOST_FUSION_ADAPT_STRUCT(score::ast::BinaryOp<score::ast::OpSub>,
                           (score::ast::Expr, lhs)(score::ast::Expr, rhs))
+
+BOOST_FUSION_ADAPT_STRUCT(score::ast::BinaryRel<score::ast::RelEq>,
+                          (score::ast::Expr, lhs)(score::ast::Expr, rhs))
+BOOST_FUSION_ADAPT_STRUCT(score::ast::BinaryRel<score::ast::RelNotEq>,
+                          (score::ast::Expr, lhs)(score::ast::Expr, rhs))
+BOOST_FUSION_ADAPT_STRUCT(score::ast::BinaryRel<score::ast::RelLessThan>,
+                          (score::ast::Expr, lhs)(score::ast::Expr, rhs))
+BOOST_FUSION_ADAPT_STRUCT(score::ast::BinaryRel<score::ast::RelLessThanEq>,
+                          (score::ast::Expr, lhs)(score::ast::Expr, rhs))
+BOOST_FUSION_ADAPT_STRUCT(score::ast::BinaryRel<score::ast::RelGreaterThan>,
+                          (score::ast::Expr, lhs)(score::ast::Expr, rhs))
+BOOST_FUSION_ADAPT_STRUCT(score::ast::BinaryRel<score::ast::RelGreaterThanEq>,
+                          (score::ast::Expr, lhs)(score::ast::Expr, rhs))
+
+BOOST_FUSION_ADAPT_STRUCT(score::ast::Range,
+                          (score::ast::Expr, lhs)(score::ast::Expr,
+                                                  lb)(score::ast::Expr, ub))
+BOOST_FUSION_ADAPT_STRUCT(score::ast::Contains,
+                          (score::ast::Expr, lhs)(std::vector<score::ast::Expr>,
+                                                  set))
