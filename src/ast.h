@@ -7,6 +7,8 @@
 #define BOOST_MPL_LIMIT_LIST_SIZE 40
 #define BOOST_MPL_LIMIT_VECTOR_SIZE 40
 
+#include <boost/optional.hpp>
+
 #include <boost/fusion/include/adapt_struct.hpp>
 
 #include <boost/variant/recursive_wrapper.hpp>
@@ -43,9 +45,15 @@ struct Range;
 
 struct Contains;
 
+struct Predicate;
+struct Qualifier;
+struct Variable;
+
 using Expr =
     boost::variant<std::string, char, unsigned int,
                    double, // TODO: not exact/arb precision - will improve later
+                   boost::recursive_wrapper<Variable>,
+
                    boost::recursive_wrapper<UnaryOp<OpUnaryMinus>>,
                    boost::recursive_wrapper<UnaryOp<OpLogicalNot>>,
                    boost::recursive_wrapper<BinaryOp<OpMod>>,
@@ -98,6 +106,32 @@ struct Contains {
   Expr lhs;
   std::vector<Expr> set;
 };
+
+struct Predicate {
+  explicit Predicate() = default;
+  explicit Predicate(const std::string &pid, const Expr &e)
+      : id(pid), expr(e) {}
+  std::string id;
+  Expr expr;
+};
+
+using QualInnerT = boost::optional<boost::variant<unsigned int, Predicate>>;
+struct Qualifier {
+  explicit Qualifier() = default;
+  explicit Qualifier(const std::string &qid, const QualInnerT &q)
+      : id(qid), qual(q) {}
+  std::string id;
+  QualInnerT qual;
+};
+
+struct Variable {
+  explicit Variable(boost::optional<std::string> &s,
+                    const std::vector<Qualifier> &qs)
+      : scope(s), quals(qs) {}
+  boost::optional<std::string>
+      scope; // TODO: convert this to an enum during construction
+  std::vector<Qualifier> quals;
+};
 }
 }
 
@@ -141,3 +175,11 @@ BOOST_FUSION_ADAPT_STRUCT(score::ast::BinaryRel<score::ast::RelAnd>,
                           (score::ast::Expr, lhs)(score::ast::Expr, rhs))
 BOOST_FUSION_ADAPT_STRUCT(score::ast::BinaryRel<score::ast::RelOr>,
                           (score::ast::Expr, lhs)(score::ast::Expr, rhs))
+
+BOOST_FUSION_ADAPT_STRUCT(score::ast::Predicate,
+                          (std::string, id)(score::ast::Expr, expr))
+BOOST_FUSION_ADAPT_STRUCT(score::ast::Qualifier,
+                          (std::string, id)(score::ast::QualInnerT, qual))
+BOOST_FUSION_ADAPT_STRUCT(score::ast::Variable,
+                          (boost::optional<std::string>,
+                           scope)(std::vector<score::ast::Qualifier>, quals))

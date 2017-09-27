@@ -57,17 +57,41 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
       |  double_ // TODO: allow negative numbers? replace with a parser for fixed-precision
       |  uint_   // had to switch order with double_ (c.f. ANTLR grammar)
       |  lit('\'') >> stringCharRule >> lit('\'')
-      |  lit('\"') >> +stringCharRule >> lit('\"');
+      |  lit('\"') >> +stringCharRule >> lit('\"')
+      |  varRule;
+
+    predRule %= idRule >> lit("==") >> exprRule;
+    qualRule %= idRule >> -(lit('[') >> (uint_  | predRule) >> lit(']'));
+    varRule   = (-(string("$")|string("^")|string("in.")|string("out.")|string("this."))
+                  >> ((qualRule % '.'))) [_val = phx::construct<ast::Variable>(_1, _2)];
+
+    idRule = alpha >> *(alnum | char_('_'));
 
     stringCharRule = ~char_("\\\"")
                    | lit('\\') >> char_("btnfr\"'\\");
 
-    BOOST_SPIRIT_DEBUG_NODE(exprRule);
-    BOOST_SPIRIT_DEBUG_NODE(unaryRule);
-    BOOST_SPIRIT_DEBUG_NODE(mulDivRule);
-    BOOST_SPIRIT_DEBUG_NODE(simpleRule);
     BOOST_SPIRIT_DEBUG_NODE(statementRule);
+
+    BOOST_SPIRIT_DEBUG_NODE(exprRule);
+    BOOST_SPIRIT_DEBUG_NODE(orRule);
+    BOOST_SPIRIT_DEBUG_NODE(andRule);
+    BOOST_SPIRIT_DEBUG_NODE(eqRule);
+    BOOST_SPIRIT_DEBUG_NODE(inclusionRule);
+    BOOST_SPIRIT_DEBUG_NODE(relRule);
+    BOOST_SPIRIT_DEBUG_NODE(addSubRule);
+    BOOST_SPIRIT_DEBUG_NODE(mulDivRule);
+    BOOST_SPIRIT_DEBUG_NODE(unaryRule);
+    BOOST_SPIRIT_DEBUG_NODE(simpleRule);
+    BOOST_SPIRIT_DEBUG_NODE(varRule);
+
+    BOOST_SPIRIT_DEBUG_NODE(predRule);
+    BOOST_SPIRIT_DEBUG_NODE(qualRule);
+
+    BOOST_SPIRIT_DEBUG_NODE(idRule);
+    BOOST_SPIRIT_DEBUG_NODE(stringCharRule);
   }
+
+  qi::rule<Iterator, ast::Statement(), ascii::space_type> statementRule;
 
   qi::rule<Iterator, ast::Expr(),      ascii::space_type> exprRule,
                                                           orRule,
@@ -78,11 +102,14 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
                                                           addSubRule,
                                                           mulDivRule,
                                                           unaryRule,
-                                                          simpleRule;
+                                                          simpleRule,
+                                                          varRule;
 
+  qi::rule<Iterator, ast::Predicate(), ascii::space_type> predRule;
+  qi::rule<Iterator, ast::Qualifier(), ascii::space_type> qualRule;
+
+  qi::rule<Iterator, std::string(),    ascii::space_type> idRule;
   qi::rule<Iterator, char(),           ascii::space_type> stringCharRule;
-
-  qi::rule<Iterator, ast::Statement(), ascii::space_type> statementRule;
 };
 
 bool parse(ast::Statement &out, const std::string &in) {
