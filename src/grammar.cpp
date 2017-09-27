@@ -40,7 +40,8 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
     mulDivRule
       = unaryRule[_val = _1]
         >> *( (lit('*') >> unaryRule) [_val = phx::construct<ast::BinaryOp<ast::OpMult>>(_val, _1)]
-            | (lit('/') >> unaryRule) [_val = phx::construct<ast::BinaryOp<ast::OpDiv>>(_val, _1)]);
+            | (lit('/') >> unaryRule) [_val = phx::construct<ast::BinaryOp<ast::OpDiv>>(_val, _1)]
+            | ((lit("mod") | lit("%")) >> unaryRule) [_val = phx::construct<ast::BinaryOp<ast::OpMod>>(_val, _1)]);
     unaryRule // TODO: better to use '>' instead of '>>' ... but throws exception on bad parse
       = (lit('-') >> exprRule) [_val = phx::construct<ast::UnaryOp<ast::OpUnaryMinus>>(_1)]
       | (lit('!') >> exprRule) [_val = phx::construct<ast::UnaryOp<ast::OpLogicalNot>>(_1)]
