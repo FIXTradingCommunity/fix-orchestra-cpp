@@ -14,6 +14,8 @@ struct OpUnaryMinus {};
 struct OpLogicalNot {};
 template <typename OpT> struct UnaryOp;
 
+struct OpSub {};
+struct OpAdd {};
 struct OpDiv {};
 struct OpMult {};
 template <typename OpT> struct BinaryOp;
@@ -22,7 +24,9 @@ using Expr = boost::variant<unsigned int,
                             boost::recursive_wrapper<UnaryOp<OpUnaryMinus>>,
                             boost::recursive_wrapper<UnaryOp<OpLogicalNot>>,
                             boost::recursive_wrapper<BinaryOp<OpDiv>>,
-                            boost::recursive_wrapper<BinaryOp<OpMult>>>;
+                            boost::recursive_wrapper<BinaryOp<OpMult>>,
+                            boost::recursive_wrapper<BinaryOp<OpSub>>,
+                            boost::recursive_wrapper<BinaryOp<OpAdd>>>;
 
 using Statement = boost::variant<Expr>;
 }
@@ -51,4 +55,8 @@ BOOST_FUSION_ADAPT_STRUCT(score::ast::UnaryOp<score::ast::OpUnaryMinus>,
 BOOST_FUSION_ADAPT_STRUCT(score::ast::BinaryOp<score::ast::OpMult>,
                           (score::ast::Expr, lhs)(score::ast::Expr, rhs))
 BOOST_FUSION_ADAPT_STRUCT(score::ast::BinaryOp<score::ast::OpDiv>,
+                          (score::ast::Expr, lhs)(score::ast::Expr, rhs))
+BOOST_FUSION_ADAPT_STRUCT(score::ast::BinaryOp<score::ast::OpAdd>,
+                          (score::ast::Expr, lhs)(score::ast::Expr, rhs))
+BOOST_FUSION_ADAPT_STRUCT(score::ast::BinaryOp<score::ast::OpSub>,
                           (score::ast::Expr, lhs)(score::ast::Expr, rhs))

@@ -18,7 +18,11 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
 
     statementRule = exprRule.alias() >> eoi;
 
-    exprRule      = mulDivRule.alias();
+    exprRule      = addSubRule.alias();
+    addSubRule
+      = mulDivRule[_val = _1]
+        >> *( (lit('+') >> mulDivRule) [_val = phx::construct<ast::BinaryOp<ast::OpAdd>>(_val, _1)]
+            | (lit('-') >> mulDivRule) [_val = phx::construct<ast::BinaryOp<ast::OpSub>>(_val, _1)]);
     mulDivRule
       = unaryRule[_val = _1]
         >> *( (lit('*') >> unaryRule) [_val = phx::construct<ast::BinaryOp<ast::OpMult>>(_val, _1)]
@@ -39,8 +43,9 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
   }
 
   qi::rule<Iterator, ast::Expr(),      ascii::space_type> exprRule,
-                                                          unaryRule,
+                                                          addSubRule,
                                                           mulDivRule,
+                                                          unaryRule,
                                                           simpleRule;
   qi::rule<Iterator, ast::Statement(), ascii::space_type> statementRule;
 };

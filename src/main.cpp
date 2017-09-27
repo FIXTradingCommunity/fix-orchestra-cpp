@@ -7,9 +7,9 @@
 #include <string>
 #include <type_traits>
 
-const std::string testsSuccess[] = {"42", "-12", "3*4", "!(4/2)", "-(3*(2/2))"};
+const std::string testsSuccess[] = {"42", "-12", "3*4", "!(4/2)", "-(3*(2/2))", "4*2-3", "(2+3)*4", "2+2+2"};
 
-const std::string testsFailure[] = {"4*", "/2"};
+const std::string testsFailure[] = {"4*", "/2", "1*+2", "3+"};
 
 std::pair<bool, score::ast::Statement> doParse(const std::string &stmt) {
   score::ast::Statement ast;
