@@ -58,7 +58,10 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
       |  uint_   // had to switch order with double_ (c.f. ANTLR grammar)
       |  lit('\'') >> stringCharRule >> lit('\'')
       |  lit('\"') >> +stringCharRule >> lit('\"')
+      |  existsRule
       |  varRule;
+
+    existsRule %= lit("exists") >> varRule; // TODO: consider using '>'
 
     predRule %= idRule >> lit("==") >> exprRule;
     qualRule %= idRule >> -(lit('[') >> (uint_  | predRule) >> lit(']'));
@@ -82,6 +85,7 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
     BOOST_SPIRIT_DEBUG_NODE(mulDivRule);
     BOOST_SPIRIT_DEBUG_NODE(unaryRule);
     BOOST_SPIRIT_DEBUG_NODE(simpleRule);
+    BOOST_SPIRIT_DEBUG_NODE(existsRule);
     BOOST_SPIRIT_DEBUG_NODE(varRule);
 
     BOOST_SPIRIT_DEBUG_NODE(predRule);
@@ -103,6 +107,7 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
                                                           mulDivRule,
                                                           unaryRule,
                                                           simpleRule,
+                                                          existsRule,
                                                           varRule;
 
   qi::rule<Iterator, ast::Predicate(), ascii::space_type> predRule;

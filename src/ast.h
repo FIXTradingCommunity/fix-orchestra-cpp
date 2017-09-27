@@ -49,10 +49,13 @@ struct Predicate;
 struct Qualifier;
 struct Variable;
 
+struct Exists;
+
 using Expr =
     boost::variant<std::string, char, unsigned int,
                    double, // TODO: not exact/arb precision - will improve later
                    boost::recursive_wrapper<Variable>,
+                   boost::recursive_wrapper<Exists>,
 
                    boost::recursive_wrapper<UnaryOp<OpUnaryMinus>>,
                    boost::recursive_wrapper<UnaryOp<OpLogicalNot>>,
@@ -132,6 +135,12 @@ struct Variable {
       scope; // TODO: convert this to an enum during construction
   std::vector<Qualifier> quals;
 };
+
+struct Exists {
+  explicit Exists(const Qualifier& q) : qualifier(q) {}
+  Qualifier qualifier;
+};
+
 }
 }
 
@@ -183,3 +192,5 @@ BOOST_FUSION_ADAPT_STRUCT(score::ast::Qualifier,
 BOOST_FUSION_ADAPT_STRUCT(score::ast::Variable,
                           (boost::optional<std::string>,
                            scope)(std::vector<score::ast::Qualifier>, quals))
+BOOST_FUSION_ADAPT_STRUCT(score::ast::Exists,
+                          (score::ast::Qualifier, qualifier))
