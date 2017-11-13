@@ -22,31 +22,6 @@
 namespace score {
 namespace ast {
 
-struct Time {
-  // TODO: support time-zones!
-  Time() = default;
-  Time(unsigned char h, unsigned char m, unsigned char s, unsigned long ss)
-      : hour(h), minute(m), second(s), subsecond(ss) {}
-  unsigned char hour;
-  unsigned char minute;
-  unsigned char second;
-  unsigned long subsecond;
-
-  static Time makeTime(unsigned char h, unsigned char m,
-                       const boost::optional<unsigned char> &os,
-                       const boost::optional<unsigned long> &oss) {
-    return Time(h, m, boost::get_optional_value_or(os, 0),
-                boost::get_optional_value_or(oss, 0));
-  }
-};
-
-// struct Datetime {
-//   Datetime() = default;
-//   Datetime(const Date &d, const Time &t) : date(d), time(t) {}
-//   Date date;
-//   Time time;
-// };
-
 // TODO
 // struct Period {
 // };
@@ -88,7 +63,7 @@ using Expr = boost::variant<
                   // constructible
     double,       // TODO: not exact/arb precision - will improve later
     std::string,
-    boost::gregorian::date, Time, // Datetime, // Period,
+    boost::gregorian::date, boost::posix_time::time_duration, boost::posix_time::ptime, // Period,
     boost::recursive_wrapper<Variable>, boost::recursive_wrapper<Exists>,
 
     boost::recursive_wrapper<UnaryOp<OpUnaryMinus>>,
@@ -226,9 +201,3 @@ BOOST_FUSION_ADAPT_STRUCT(score::ast::Variable,
                            scope)(std::vector<score::ast::Qualifier>, quals))
 BOOST_FUSION_ADAPT_STRUCT(score::ast::Exists,
                           (score::ast::Qualifier, qualifier))
-
-BOOST_FUSION_ADAPT_STRUCT(score::ast::Time,
-                          (unsigned char, hour)(unsigned char, minute)(
-                              unsigned char, second)(unsigned long, subsecond))
-// BOOST_FUSION_ADAPT_STRUCT(score::ast::Datetime,
-//                           (score::ast::Date, date)(score::ast::Time, time))
