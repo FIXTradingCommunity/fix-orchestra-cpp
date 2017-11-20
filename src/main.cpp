@@ -37,7 +37,9 @@ const std::string testsSuccess[] = {"42",
                                     "#T12:34:56.89#",
                                     "#2017-09-16 T12:34:56.89#",
                                     "this.id=3+4",
-                                    "$xyz=#2017-09-16#"};
+                                    "$xyz=#2017-09-16#",
+                                    "3*4 /* totally \n valid /* and nested! */ \n comment */",
+                                    "42 // ignore"};
 
 const std::string testsFailure[] = {
     "4*", "/2",

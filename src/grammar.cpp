@@ -11,8 +11,8 @@ namespace qi = boost::spirit::qi;
 namespace ascii = boost::spirit::ascii;
 namespace phx = boost::phoenix;
 
-template <typename Iterator>
-struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
+template <typename Iterator, typename Skipper>
+struct Grammar : qi::grammar<Iterator, ast::Statement(), Skipper> {
   Grammar() : Grammar::base_type(statementRule) {
     using namespace qi;
     using namespace boost::gregorian;
@@ -123,42 +123,52 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
     BOOST_SPIRIT_DEBUG_NODE(stringCharRule);
   }
 
-  qi::rule<Iterator, ast::Statement(), ascii::space_type> statementRule;
+  qi::rule<Iterator, ast::Statement(),  Skipper> statementRule;
 
-  qi::rule<Iterator, ast::Assignment(), ascii::space_type> assignmentRule;
+  qi::rule<Iterator, ast::Assignment(), Skipper> assignmentRule;
 
-  qi::rule<Iterator, ast::Expr(),       ascii::space_type> exprRule,
-                                                           orRule,
-                                                           andRule,
-                                                           eqRule,
-                                                           inclusionRule,
-                                                           relRule,
-                                                           addSubRule,
-                                                           mulDivRule,
-                                                           unaryRule,
-                                                           simpleRule,
-                                                           existsRule;
+  qi::rule<Iterator, ast::Expr(),       Skipper> exprRule,
+                                                 orRule,
+                                                 andRule,
+                                                 eqRule,
+                                                 inclusionRule,
+                                                 relRule,
+                                                 addSubRule,
+                                                 mulDivRule,
+                                                 unaryRule,
+                                                 simpleRule,
+                                                 existsRule;
 
-  qi::rule<Iterator, boost::posix_time::time_duration(), ascii::space_type> timeRule;
-  qi::rule<Iterator, boost::gregorian::date(),           ascii::space_type> dateRule;
-  qi::rule<Iterator, boost::posix_time::ptime(),         ascii::space_type> datetimeRule;
+  qi::rule<Iterator, boost::posix_time::time_duration(), Skipper> timeRule;
+  qi::rule<Iterator, boost::gregorian::date(),           Skipper> dateRule;
+  qi::rule<Iterator, boost::posix_time::ptime(),         Skipper> datetimeRule;
 
-  qi::rule<Iterator, ast::Predicate(), ascii::space_type> predRule;
-  qi::rule<Iterator, ast::Qualifier(), ascii::space_type> qualRule;
-  qi::rule<Iterator, ast::Variable(),  ascii::space_type> varRule;
+  qi::rule<Iterator, ast::Predicate(), Skipper> predRule;
+  qi::rule<Iterator, ast::Qualifier(), Skipper> qualRule;
+  qi::rule<Iterator, ast::Variable(),  Skipper> varRule;
 
-  qi::rule<Iterator, std::string(),    ascii::space_type> idRule;
-  qi::rule<Iterator, char(),           ascii::space_type> stringCharRule;
+  qi::rule<Iterator, std::string(),    Skipper> idRule;
+  qi::rule<Iterator, char(),           Skipper> stringCharRule;
 };
 
 bool parse(ast::Statement &out, const std::string &in) {
-  using boost::spirit::ascii::space;
+  // skipper approach adapted from: https://stackoverflow.com/a/44531686
+  using Iterator = std::string::const_iterator;
 
-  score::Grammar<std::string::const_iterator> grammar;
+  qi::rule<Iterator> lineComment, blockComment, skipper;
+  {
+    using namespace qi;
+
+    lineComment  = lit("//") >> *(char_ - eol) >> (eol|eoi);
+    blockComment = lit("/*") >> *(blockComment | char_ - lit("*/")) > lit("*/");
+    skipper      = space | lineComment | blockComment;
+  }
+
+  score::Grammar<Iterator, decltype(skipper)> grammar;
 
   const auto &iter = in.cbegin();
   const auto &end = in.cend();
-  bool parsed = phrase_parse(iter, end, grammar, space, out);
+  bool parsed = phrase_parse(iter, end, grammar, skipper, out);
 
   return parsed;
 }
