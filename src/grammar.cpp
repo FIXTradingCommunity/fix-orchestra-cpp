@@ -18,7 +18,9 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
     using namespace boost::gregorian;
     using namespace boost::posix_time;
 
-    statementRule = exprRule.alias() >> eoi;
+    statementRule = (assignmentRule | exprRule) >> eoi;
+
+    assignmentRule = varRule >> lit('=') >> exprRule;
 
     exprRule      = orRule.alias();
     orRule
@@ -66,7 +68,7 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
       |  existsRule
       |  varRule;
 
-    existsRule %= lit("exists") >> varRule; // TODO: consider using '>'
+    existsRule = lit("exists") >> varRule [_val = phx::construct<ast::Exists>(_1)]; // TODO: consider using '>'
 
     predRule %= idRule >> lit("==") >> exprRule;
     qualRule %= idRule >> -(lit('[') >> (uint_  | predRule) >> lit(']'));
@@ -93,7 +95,10 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
 
     BOOST_SPIRIT_DEBUG_NODE(statementRule);
 
+    BOOST_SPIRIT_DEBUG_NODE(assignmentRule);
+
     BOOST_SPIRIT_DEBUG_NODE(exprRule);
+
     BOOST_SPIRIT_DEBUG_NODE(orRule);
     BOOST_SPIRIT_DEBUG_NODE(andRule);
     BOOST_SPIRIT_DEBUG_NODE(eqRule);
@@ -112,6 +117,7 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
 
     BOOST_SPIRIT_DEBUG_NODE(predRule);
     BOOST_SPIRIT_DEBUG_NODE(qualRule);
+    BOOST_SPIRIT_DEBUG_NODE(varRule);
 
     BOOST_SPIRIT_DEBUG_NODE(idRule);
     BOOST_SPIRIT_DEBUG_NODE(stringCharRule);
@@ -119,18 +125,19 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
 
   qi::rule<Iterator, ast::Statement(), ascii::space_type> statementRule;
 
-  qi::rule<Iterator, ast::Expr(),      ascii::space_type> exprRule,
-                                                          orRule,
-                                                          andRule,
-                                                          eqRule,
-                                                          inclusionRule,
-                                                          relRule,
-                                                          addSubRule,
-                                                          mulDivRule,
-                                                          unaryRule,
-                                                          simpleRule,
-                                                          existsRule,
-                                                          varRule;
+  qi::rule<Iterator, ast::Assignment(), ascii::space_type> assignmentRule;
+
+  qi::rule<Iterator, ast::Expr(),       ascii::space_type> exprRule,
+                                                           orRule,
+                                                           andRule,
+                                                           eqRule,
+                                                           inclusionRule,
+                                                           relRule,
+                                                           addSubRule,
+                                                           mulDivRule,
+                                                           unaryRule,
+                                                           simpleRule,
+                                                           existsRule;
 
   qi::rule<Iterator, boost::posix_time::time_duration(), ascii::space_type> timeRule;
   qi::rule<Iterator, boost::gregorian::date(),           ascii::space_type> dateRule;
@@ -138,6 +145,7 @@ struct Grammar : qi::grammar<Iterator, ast::Statement(), ascii::space_type> {
 
   qi::rule<Iterator, ast::Predicate(), ascii::space_type> predRule;
   qi::rule<Iterator, ast::Qualifier(), ascii::space_type> qualRule;
+  qi::rule<Iterator, ast::Variable(),  ascii::space_type> varRule;
 
   qi::rule<Iterator, std::string(),    ascii::space_type> idRule;
   qi::rule<Iterator, char(),           ascii::space_type> stringCharRule;

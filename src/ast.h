@@ -57,6 +57,8 @@ struct Qualifier;
 struct Variable;
 struct Exists;
 
+struct Assignment;
+
 using Expr = boost::variant<
     char,
     unsigned int, // list these first since first field needs to be default
@@ -83,7 +85,7 @@ using Expr = boost::variant<
     boost::recursive_wrapper<BinaryRel<RelAnd>>,
     boost::recursive_wrapper<BinaryRel<RelOr>>>;
 
-using Statement = boost::variant<Expr>;
+using Statement = boost::variant<boost::recursive_wrapper<Assignment>, Expr>;
 }
 }
 
@@ -136,6 +138,7 @@ struct Qualifier {
 };
 
 struct Variable {
+  explicit Variable() = default;
   explicit Variable(boost::optional<std::string> &s,
                     const std::vector<Qualifier> &qs)
       : scope(s), quals(qs) {}
@@ -145,9 +148,17 @@ struct Variable {
 };
 
 struct Exists {
-  explicit Exists(const Qualifier &q) : qualifier(q) {}
-  Qualifier qualifier;
+  explicit Exists(const Variable &v) : var(v) {}
+  Variable var;
 };
+
+struct Assignment {
+  explicit Assignment() = default;
+  explicit Assignment(const Variable& l, const Expr& r) : lhs(l), rhs(r) {}
+  Variable lhs;
+  Expr     rhs;
+};
+
 }
 }
 
@@ -200,4 +211,7 @@ BOOST_FUSION_ADAPT_STRUCT(score::ast::Variable,
                           (boost::optional<std::string>,
                            scope)(std::vector<score::ast::Qualifier>, quals))
 BOOST_FUSION_ADAPT_STRUCT(score::ast::Exists,
-                          (score::ast::Qualifier, qualifier))
+                          (score::ast::Variable, var))
+
+BOOST_FUSION_ADAPT_STRUCT(score::ast::Assignment,
+                          (score::ast::Variable, lhs)(score::ast::Expr, rhs))
