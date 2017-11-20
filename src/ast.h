@@ -64,8 +64,8 @@ using Expr = boost::variant<
     unsigned int, // list these first since first field needs to be default
                   // constructible
     double,       // TODO: not exact/arb precision - will improve later
-    std::string,
-    boost::gregorian::date, boost::posix_time::time_duration, boost::posix_time::ptime, // Period,
+    std::string, boost::gregorian::date, boost::posix_time::time_duration,
+    boost::posix_time::ptime, // Period,
     boost::recursive_wrapper<Variable>, boost::recursive_wrapper<Exists>,
 
     boost::recursive_wrapper<UnaryOp<OpUnaryMinus>>,
@@ -154,11 +154,10 @@ struct Exists {
 
 struct Assignment {
   explicit Assignment() = default;
-  explicit Assignment(const Variable& l, const Expr& r) : lhs(l), rhs(r) {}
+  explicit Assignment(const Variable &l, const Expr &r) : lhs(l), rhs(r) {}
   Variable lhs;
-  Expr     rhs;
+  Expr rhs;
 };
-
 }
 }
 
@@ -210,8 +209,7 @@ BOOST_FUSION_ADAPT_STRUCT(score::ast::Qualifier,
 BOOST_FUSION_ADAPT_STRUCT(score::ast::Variable,
                           (boost::optional<std::string>,
                            scope)(std::vector<score::ast::Qualifier>, quals))
-BOOST_FUSION_ADAPT_STRUCT(score::ast::Exists,
-                          (score::ast::Variable, var))
+BOOST_FUSION_ADAPT_STRUCT(score::ast::Exists, (score::ast::Variable, var))
 
 BOOST_FUSION_ADAPT_STRUCT(score::ast::Assignment,
                           (score::ast::Variable, lhs)(score::ast::Expr, rhs))
